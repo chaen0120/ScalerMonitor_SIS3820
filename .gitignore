@@ -1,0 +1,18 @@
+# Built binaries
+scaler_ctl
+read_id
+ipsearch
+
+# Object / editor junk
+*.o
+*.a
+*.so
+*~
+.*.swp
+.swp
+*.swp
+
+# Misc
+a.out
+core
+core.*

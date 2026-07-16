@@ -205,7 +205,7 @@ Auto mode redraws the screen in place (2 channels per row) and shows approximate
 | ID `0xffffffff` | No module at that address |
 | **A** never blinks | Wrong base, bus, or controller not mastering VME |
 | **P**/**R** off | Module/crate power or seating |
-| Wrong counts / always zero | Not started (`g`); no input signals; check inhibit |
+| Wrong counts / always zero | Not started (`g`); no input signals; unplug **control** inputs (old builds used inhibit mode 4); rebuild current `scaler_ctl` and run `r` then `g` |
 
 Confirm ID register: `BASE+0x04` should read `0x3820xxxx`.
 

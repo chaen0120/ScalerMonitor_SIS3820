@@ -28,6 +28,7 @@
 
 #define REG_ID        0x04
 #define REG_ACQMODE   0x100
+#define REG_INHIBIT   0x200       /* per-channel count inhibit */
 #define KEY_RESET     0x400
 #define KEY_FIFO_RST  0x404
 #define KEY_CLEAR     0x40C
@@ -37,10 +38,12 @@
 #define KEY_DISABLE   0x41C
 #define SHADOW_BASE   0x800
 
-/* Acq mode: 32-bit, VME LNE, SRAM, inhibit banks of 4, 50 MHz out,
- * latching scaler, NON-clearing (bit0=1) so monitor LNE does not zero counters. */
+/* Acq mode: 32-bit, VME LNE, SRAM, input mode NONE (control pins unused),
+ * 50 MHz out, latching scaler, NON-clearing (bit0=1).
+ * Do NOT use input mode 4 (0x00040000): that makes control inputs inhibit
+ * channel banks — accidental cables on CTRL look like “no counts”. */
 #define ACQ_MODE_DEFAULT \
-  (0x00000001UL | 0x00001000UL | 0x00040000UL | 0x00100000UL)
+  (0x00000001UL | 0x00001000UL | 0x00100000UL)
 
 static usb_dev_handle *g_udev;
 static int g_configured;
@@ -103,20 +106,22 @@ static int identify(void)
 static void scaler_configure(void)
 {
   vme_write(BASE + REG_ACQMODE, (long)ACQ_MODE_DEFAULT);
+  vme_write(BASE + REG_INHIBIT, 0);   /* enable all channels */
   vme_write(BASE + KEY_FIFO_RST, 0);
   vme_write(BASE + KEY_CLEAR, 0);
   g_configured = 1;
-  printf("Configured (non-clearing latch; monitor will not zero counters).\n");
-  printf("Use 'c' to clear, or 'r' for full reset.\n");
+  printf("Configured (input mode none; control pins do not inhibit).\n");
+  printf("Non-clearing latch; use 'c' to clear counters.\n");
 }
 
 static void scaler_reset(void)
 {
   vme_write(BASE + KEY_RESET, 0);
-  g_configured = 0;
   g_running = 0;
-  printf("Reset (module to power-up state; S should be off).\n");
-  printf("Call start (g) to configure and enable again.\n");
+  /* Re-apply safe mode immediately — bare KEY_RESET alone leaves
+   * power-up defaults and feels like “r does nothing useful”. */
+  scaler_configure();
+  printf("Reset + reconfigured (S off until 'g').\n");
 }
 
 static void scaler_clear(void)
